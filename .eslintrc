@@ -1,6 +1,5 @@
 {
-    "compilerOptions": {
-        "target": "esnext",
-        "module": "commonjs"
-    }
+    "parserOptions": {
+        "ecmaVersion": 6
+      }
 }
