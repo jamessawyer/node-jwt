@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt-nodejs'); // 加密
 const Schema = mongoose.Schema; // Schema可以理解为对数据的描述
 mongoose.Promise = global.Promise;
 
+
 // 1.定义model
 const userSchema = new Schema({
     email: {
@@ -10,7 +11,10 @@ const userSchema = new Schema({
         unique: true,
         lowercase: true
     },
-    password: String
+    password: {
+        type: String,
+        required: true
+    }
 });
 
 // mongodb 'save' Hook 
@@ -20,22 +24,35 @@ userSchema.pre('save', function(next) {
     // user是user model的实例 这样我们就可以访问 this.email this.password等属性
     const user = this;
 
-    // 产生salt
-    bcrypt.genSalt(10, (err, salt) => {
-        if (err) {
-            return next(err);
-        }
-
-        // 使用salt对password进行hash（即加密）
-        bcrypt.hash(user.password, salt, null, (err, hash) => {
-            if (err) { return next(err); }
-
-            // 将hash赋给密码 从而达到加密的目的
-            user.password = hash;
-            next();
+    if (this.isModified('password') || this.isNew) {
+        // 产生salt
+        bcrypt.genSalt(10, (err, salt) => {
+            if (err) {
+                return next(err);
+            }
+    
+            // 使用salt对password进行hash（即加密）
+            bcrypt.hash(user.password, salt, null, (err, hash) => {
+                if (err) { return next(err); }
+    
+                // 将hash赋给密码 从而达到加密的目的
+                user.password = hash;
+                next();
+            })
         })
-    })
+    }
 })
+
+// 比较密码
+userSchema.methods.comparePwd = (candidatePwd, callback) => {
+    bcrypt.compare(candidatePwd, this.password, (err, isMatch) => {
+        if (err) {
+            return callback(err);
+        }
+        callback(null, isMatch);
+        console.log('验证密码');
+    })
+}
 
 // 2.创建model class
 const ModelClass = mongoose.model('User', userSchema);
